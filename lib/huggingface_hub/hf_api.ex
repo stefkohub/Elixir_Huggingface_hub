@@ -69,77 +69,6 @@ defmodule Huggingface_hub.Hf_api do
     Agent.update(__MODULE__, fn -> new_s end)
   end
 
-  @doc """
-        Call HF API to sign in a user and get a token if credentials are valid.
-        Outputs: token if credentials are valid
-        Throws: requests.exceptions.HTTPError if credentials are invalid
-  """
-  def login(state, username, password) do
-    # TODO: Add Logging
-    # logging.error(
-    #        "HfApi.login: This method is deprecated in favor of `set_access_token`."
-    #    )
-    #
-    path = "#{state.endpoint}/api/login"
-    params = Jason.encode!(%{username: username, password: password})
-    r = Requests.post(path, [{"content-type", "application/json"}], [:with_body], params)
-    d = Jason.decode!(Requests.raise_for_status(r))
-    Shared.write_to_credential_store(username, password)
-    d.token
-  end
-
-  @doc """
-      Call HF API to know "whoami".
-        Args:
-            token (``str``, `optional`):
-                Hugging Face token. Will default to the locally saved token if not provided.
-  """
-  def whoami(state, token \\ nil) do
-    token = if token === nil, do: HfFolder.get_token(), else: token
-    unless token !== nil do
-      raise ArgumentError, "You need to pass a valid `token` or login by using `huggingface-cli login`"
-    end
-    path = "#{state.endpoint}/api/whoami-v2"
-    r = Requests.get(path, [{"authorization", "Bearer #{token}"}],[:with_body])
-    try do
-      Requests.raise_for_status(r)
-    catch
-      HTTPError -> raise """
-        Invalid user token. If you didn't pass a user token, make sure you are properly logged in by
-        executing huggingface-cli login, and if you did pass a user token, double-check it's correct.
-      """
-    end
-    Jason.encode!(r)
-  end
-
-  @doc """
-    Call HF API to log out.
-        Args:
-            token (``str``, `optional`):
-                Hugging Face token. Will default to the locally saved token if not provided.
-
-  """
-  def logout(state, token \\ nil) do
-    Logging.error("This method is deprecated in favor of unset_access_token.")
-    token = if token === nil, do: HfFolder.get_token(), else: token
-    unless token !== nil do
-      raise ArgumentError, "You need to pass a valid `token` or login by using `huggingface-cli login`"
-    end
-    username = whoami(state, token).name
-    Shared.erase_from_credential_store(username)
-
-    path = "#{state.endpoint}/api/logout"
-    r = Requests.get(path, [{"authorization", "Bearer #{token}"}],[:with_body])
-    try do
-      Requests.raise_for_status(r)
-    catch
-      HTTPError -> raise """
-        Invalid user token. If you didn't pass a user token, make sure you are properly logged in by
-        executing huggingface-cli login, and if you did pass a user token, double-check it's correct.
-      """
-    end
-  end
-
   def set_access_token(access_token), do: Shared.write_to_credential_store(@username_placeholder, access_token)
 
   def unset_access_token(), do: Shared.erase_from_credential_store(@username_placeholder)
@@ -147,8 +76,8 @@ defmodule Huggingface_hub.Hf_api do
   def get_model_tags(state) do
     path = "#{state.endpoint}/api/models-tags-by-type"
     r = Requests.get(path, [], [])
-    Requests.raise_for_status(r)
-    d = Jason.decode(r)
+    d = Requests.raise_for_status(r)
+    d = Jason.decode(d)
     ModelTags.modelTags(d)
   end
 end

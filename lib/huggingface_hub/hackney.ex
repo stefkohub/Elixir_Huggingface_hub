@@ -43,13 +43,13 @@ defmodule Huggingface_hub.Hackney do
       Raise an error if an error has occurred during the process.
     """
     def raise_for_status(req) do
-      try do
-        {:ok, 200, _, _} = req
-        {:ok, req}
-      rescue
-        # TODO: Decide the best bahaviour
+      resp = try do
+        {:ok, {200, _, resp}} = req
+        resp
+      catch
         _ -> raise HTTPError, req
       end
+      resp
     end
   else
     @message """
