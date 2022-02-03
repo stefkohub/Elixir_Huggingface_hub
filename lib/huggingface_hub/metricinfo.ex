@@ -1,10 +1,10 @@
 defmodule Huggingface_hub.MetricInfo do
 
   def start_link(opts) do
-    {id, opts} =  Keywords.pop(opts, :id, nil)
-    {description, opts} =  Keywords.pop(opts, :description, false)
-    {citation, opts} =  Keywords.pop(opts, :citation, false)
-    {_, opts} = Keywords.pop(opts,:key, "")
+    {id, opts} =  Keyword.pop(opts, :id, nil)
+    {description, opts} =  Keyword.pop(opts, :description, false)
+    {citation, opts} =  Keyword.pop(opts, :citation, false)
+    {_, opts} = Keyword.pop(opts,:key, "")
     initial_state = Map.merge(%{
       id => id,
       description => description,

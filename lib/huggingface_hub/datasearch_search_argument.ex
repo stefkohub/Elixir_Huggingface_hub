@@ -12,7 +12,7 @@ defmodule Huggingface_hub.DatasetSearchArguments do
         >>> args.language.en
   """
 
-  def start_link(args) do
+  def start_link(_args) do
     api = HfApi.start_link()
     tags = HfApi.get_dataset_tags(api)
     initial_state = %{
@@ -20,14 +20,14 @@ defmodule Huggingface_hub.DatasetSearchArguments do
       :tag => tags
     }
     Agent.start_link(fn -> initial_state end, name: __MODULE__)
-    process_datasets(initial_state)
+    process_models(initial_state)
   end
 
   defp clean(s) do
     String.replace(s," ", "") |> String.replace("-", "_") |> String.replace(".", "_")
   end
 
-  def process_datasets(state) do
+  def process_models(state) do
      datasets = HfApi.list_datasets(state.api)
      {author_dict, dataset_name_dict} = for dataset <- datasets do
        if "/" =~ dataset.datasetId do
@@ -37,7 +37,7 @@ defmodule Huggingface_hub.DatasetSearchArguments do
          [{}, {dataset.datasetId, clean(dataset.datasetId)}]
        end
      end
-     state = Map.merge(state, %{
+     Map.merge(state, %{
        dataset_name: dataset_name_dict,
        author: author_dict
      })

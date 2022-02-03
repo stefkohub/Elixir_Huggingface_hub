@@ -1,13 +1,13 @@
 defmodule Huggingface_hub.ModelInfo do
 
   def start_link(opts) do
-    {modelId, opts} =  Keywords.pop(opts, :modelId, nil)
-    {sha, opts} =  Keywords.pop(opts, :sha, nil)
-    {lastModified, opts} =  Keywords.pop(opts, :lastModified, nil)
-    {tags, opts} =  Keywords.pop(opts, :tags, [])
-    {pipeline_tag, opts} =  Keywords.pop(opts, :pipeline_tag, nil)
-    {sibilings, opts} =  ModelFile.start_link(Keywords.pop(opts, :sibilings, []))
-    {config, opts} =  Keywords.pop(opts, :config, [])
+    {modelId, opts} =  Keyword.pop(opts, :modelId, nil)
+    {sha, opts} =  Keyword.pop(opts, :sha, nil)
+    {lastModified, opts} =  Keyword.pop(opts, :lastModified, nil)
+    {tags, opts} =  Keyword.pop(opts, :tags, [])
+    {pipeline_tag, opts} =  Keyword.pop(opts, :pipeline_tag, nil)
+    {sibilings, opts} =  ModelFile.start_link(Keyword.pop(opts, :sibilings, []))
+    {config, opts} =  Keyword.pop(opts, :config, [])
     initial_state = Map.merge(%{
       :modelId => modelId,
       :sha => sha,

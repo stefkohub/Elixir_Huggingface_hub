@@ -2,7 +2,8 @@ defmodule Huggingface_hub.Constants do
 
   @staging_mode true
 
-  def endpoint, do: @staging_mode === true && "https://moon-staging.huggingface.co" || "https://huggingface.co"
+  def endpoint when @staging_mode == true, do: "https://moon-staging.huggingface.co"
+  def endpoint when @staging_mode != true, do:  "https://huggingface.co"
 
   @repo_type_dataset "dataset"
   @repo_type_space "space"
