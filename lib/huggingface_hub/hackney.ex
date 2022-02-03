@@ -44,7 +44,8 @@ defmodule Huggingface_hub.Hackney do
     """
     def raise_for_status(req) do
       resp = try do
-        {:ok, {200, _, resp}} = req
+        {:ok, {code, _, resp}} = req
+        unless code == 200, do: raise HTTPError, req
         resp
       catch
         _ -> raise HTTPError, req
