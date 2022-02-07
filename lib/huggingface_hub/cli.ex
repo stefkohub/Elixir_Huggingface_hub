@@ -1,0 +1,77 @@
+defmodule Huggingface_hub.CLI do
+  def main(args) do
+    args |> parse_args |> do_process
+  end
+
+  def parse_args(args) do
+    optparseargs = [
+      aliases: [u: :user, h: :help, v: :verbose],
+      strict: [user: :string, help: :boolean, verbose: :count]
+    ]
+
+    # options = [force_raw: false]
+
+    {opts, args, invalid} = OptionParser.parse(args, 
+      optparseargs
+    )
+
+    if invalid != [] do
+      raise "Error in command line. Wrong arguments " <> inspect([invalid])
+    end
+
+    cond do
+      opts[:help] -> :help
+      opts[:user] -> {:user, opts[:user], args}
+      # opt -> Keyword.merge(options, opt)
+    end
+    #cond do
+    #  Keyword.get(opts, :help) -> :help
+    #  Keyword.get(opts, :model) -> Keyword.get(opts, :model)
+    #  Keyword.get(opts, :force_raw) -> :force_raw
+    #  true -> :help
+    #end
+  end
+
+  def do_process(:help) do
+    IO.puts("""
+    optional arguments:
+    -h, --help          show this help message and exit
+    -r, --force_raw     Force writing raw data instead of converting to actual type. In Elixir it boosts performances.
+    -m MODEL, --model MODEL
+                        [yolov3-tiny|yolov3|yolov3-spp|yolov4-tiny|yolov4|yolov4-csp|yolov4x-mish]-[{dimension}],
+                        where {dimension} could be either a single number (e.g. 288, 416, 608) or 2 numbers, WxH (e.g.
+                        416x256)
+    """)
+
+    System.halt(0)
+  end
+
+  def do_process({:user, "login", args}) do
+    username = Enum.at(args, 0)
+    password = Enum.at(args, 1)
+    unless username && password do
+      raise "Login requires username and password"
+    end
+    token = try do
+      Huggingface_hub.Hf_api.login(username, password)
+    rescue
+      err in HTTPError ->
+        IO.puts("Error in login: #{err.message} -- code: #{err.status_code}")
+        IO.puts("Possible details: #{err.trace}")
+        System.halt(1)
+    end
+    Huggingface_hub.Hf_api.set_access_token(token)
+    Huggingface_hub.HfFolder.save_token(token)
+    IO.puts "Login successful"
+    IO.puts "Your token has been saved to #{Huggingface_hub.HfFolder.path_token}"
+    Huggingface_hub.Shared.currently_setup_credential_helpers()
+  end
+
+  def do_process({:user, "logout", args}) do
+    IO.puts "Eseguo i comandi user logout...#{inspect args}"
+  end
+
+  def do_process({:user, "whoami", args}) do
+    IO.puts "Eseguo i comandi whoami...#{inspect args}"
+  end
+end

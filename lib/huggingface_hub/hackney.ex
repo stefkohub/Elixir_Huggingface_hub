@@ -1,10 +1,16 @@
 defmodule HTTPError do
-  defexception [:message]
+  defexception [:message, :status_code, :trace]
 
   @impl true
   def exception(value) do
-    msg = "#{inspect(value)}"
-    %HTTPError{message: msg}
+    trace = "#{inspect(value)}"
+    {msg, status_code} = try do
+      {:ok, {status_code, _, msg}} = value
+      {msg, status_code}
+    rescue
+      _ -> {trace, -1}
+    end
+    %HTTPError{message: msg, status_code: status_code, trace: trace}
   end
 end
 
@@ -15,6 +21,7 @@ defmodule Huggingface_hub.Hackney do
   """
 
   @behaviour Huggingface_hub.HTTPClient
+
 
   if Code.ensure_loaded?(:hackney) do
     @impl true
@@ -33,24 +40,24 @@ defmodule Huggingface_hub.Hackney do
       HTTP POST method
     """
     def post(url, headers, options, params) do
-      with {:ok, status, headers} <- :hackney.post(url, headers, params, options) do
-        {:ok, {status, headers}}
+      with {:ok, status, headers, body} <- :hackney.post(url, headers, params, options) do
+        {:ok, {status, headers, body}}
       end
     end
 
     @impl true
     @doc """
-      Raise an error if an error has occurred during the process.
+      Raise an error if http status code is not 200 or any other error occurred
     """
     def raise_for_status(req) do
-      resp = try do
+      try do
         {:ok, {code, _, resp}} = req
         unless code == 200, do: raise HTTPError, req
         resp
-      catch
+      rescue
+        # TODO: Maybe in that case it is better to raise another kind of exeption?
         _ -> raise HTTPError, req
       end
-      resp
     end
   else
     @message """
@@ -69,6 +76,11 @@ defmodule Huggingface_hub.Hackney do
 
     @impl true
     def post(_url, _headers, _options, _params) do
+      raise @message
+    end
+
+    @impl true
+    def raise_for_status(_req) do
       raise @message
     end
   end
