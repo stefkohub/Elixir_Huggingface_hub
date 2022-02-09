@@ -11,7 +11,7 @@ defmodule Huggingface_hub.Hf_api do
   @remote_filepath_regex ~r/^\w[\w\/\-]*(\.\w+)?$/
   # ^^ No trailing slash, no backslash, no spaces, no relative parts ("." or "..")
   #    Only word characters and an optional extension
-  
+
   @remove_filepath_regex ~r/^\w[\w\/\-]*(\.\w+)?$/
   @initial_state %{endpoint: Constants.hf_endpoint()}
 
@@ -589,36 +589,82 @@ defmodule Huggingface_hub.Hf_api do
   end
 
   def upload_file(
-    path_or_fileobj, 
-    path_in_repo, 
-    repo_id, 
-    token \\ nil, 
-    repo_type \\ "", 
-    revision \\ "main", 
-    identical_ok \\ false) do
+        path_or_fileobj,
+        path_in_repo,
+        repo_id,
+        token \\ nil,
+        repo_type \\ "",
+        revision \\ "main"
+      ) do
+    # TODO: Use it?? identical_ok \\ false) do
     if repo_type not in Constants.repo_types(),
       do: raise(ArgumentError, "Invalid repo type: #{inspect(repo_type)}")
+
     token = get_valid_token(token)
-    unless is_binary(path_or_fileobj), do:
-      raise ArgumentError, "path_or_fileobj must be a path to a file or a binary"
-    if not (path_in_repo =~ @remote_filepath_regex), do:
-      raise ArgumentError, "Invalid path_in_repo '#{path_in_repo}'. Not matching: #{inspect @remote_filepath_regex}"
-    repo_type = if repo_type in Map.keys(Constants.repo_types_url_prefixes) do
-        Constants.repo_types_url_prefixes[repo_type] <> repo_id
-    else
-      repo_type
-    end
-    path="#{@initial_state.endpoint}/api/#{repo_id}/upload/#{revision}/#{path_in_repo}"
-    datastream = if String.printable?(path_or_fileobj) do
-      {:ok, file} = File.open(Path.expand(path_or_fileobj), [:read])
-      IO.binread(file, :all)
-    else
-      path_or_fileobj
-    end
+
+    unless is_binary(path_or_fileobj),
+      do: raise(ArgumentError, "path_or_fileobj must be a path to a file or a binary")
+
+    if not (path_in_repo =~ @remote_filepath_regex),
+      do:
+        raise(
+          ArgumentError,
+          "Invalid path_in_repo '#{path_in_repo}'. Not matching: #{inspect(@remote_filepath_regex)}"
+        )
+
+    repo_type =
+      if repo_type in Map.keys(Constants.repo_types_url_prefixes()) do
+        Constants.repo_types_url_prefixes()[repo_type] <> repo_id
+      else
+        repo_type
+      end
+
+    path = "#{@initial_state.endpoint}/api/#{repo_id}/upload/#{revision}/#{path_in_repo}"
+
+    datastream =
+      if String.printable?(path_or_fileobj) do
+        {resp, file} = File.open(Path.expand(path_or_fileobj), [:read])
+        unless resp == :ok, do: raise(ArgumentError, "Could not find file: #{path_or_fileobj}")
+        IO.binread(file, :all)
+      else
+        path_or_fileobj
+      end
+
     r = Requests.auth_post(path, token, [], [:with_body], datastream)
     d = Requests.raise_for_status(r)
+    # TODO: Add hf_hub_url (so, download) functionalities??
     Jason.decode!(d)["url"]
+  end
 
+  def delete_file(
+        path_in_repo,
+        repo_id,
+        token \\ nil,
+        repo_type \\ "",
+        revision \\ "main"
+      ) do
+    if repo_type not in Constants.repo_types(),
+      do: raise(ArgumentError, "Invalid repo type: #{inspect(repo_type)}")
+
+    token = get_valid_token(token)
+
+    if not (path_in_repo =~ @remote_filepath_regex),
+      do:
+        raise(
+          ArgumentError,
+          "Invalid path_in_repo '#{path_in_repo}'. Not matching: #{inspect(@remote_filepath_regex)}"
+        )
+
+    repo_type =
+      if repo_type in Map.keys(Constants.repo_types_url_prefixes()) do
+        Constants.repo_types_url_prefixes()[repo_type] <> repo_id
+      else
+        repo_type
+      end
+
+    path = "#{@initial_state.endpoint}/api/#{repo_id}/delete/#{revision}/#{path_in_repo}"
+    r = Requests.auth_delete(path, token, [], [])
+    Requests.raise_for_status(r)
   end
 
   # TODO: Add upload_file, delete_file
