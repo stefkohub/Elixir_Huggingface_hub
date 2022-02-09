@@ -1,4 +1,4 @@
-defmodule Huggingface_hub.CLI do
+defmodule HuggingfaceHub.CLI do
   require Logger
 
   def main(args) do
@@ -29,6 +29,8 @@ defmodule Huggingface_hub.CLI do
 
       opts[:user] ->
         {:user, opts[:user], args}
+
+      true -> raise "Cannot understand the command: #{inspect args}, #{inspect opts}"
         # opt -> Keyword.merge(options, opt)
     end
 
@@ -64,7 +66,8 @@ defmodule Huggingface_hub.CLI do
 
     token =
       try do
-        Huggingface_hub.Hf_api.login(username, password)
+        # Huggingface_hub.Hf_api.login(username, password)
+        HuggingfaceHub.login(username, password)
       rescue
         err in HTTPError ->
           IO.puts("Error in login: #{err.message} -- code: #{err.status_code}")
@@ -80,7 +83,6 @@ defmodule Huggingface_hub.CLI do
   end
 
   def do_process({:user, "logout", args}) do
-    IO.puts("Eseguo i comandi user logout...#{inspect(args)}")
     Logger.error("This method is deprecated in favor of `unset_access_token`.")
     maybe_token = Enum.at(args, 0)
 
@@ -98,10 +100,10 @@ defmodule Huggingface_hub.CLI do
         t
       end
 
-    Huggingface_hub.Hf_api.logout(token)
+    HuggingfaceHub.logout(token)
   end
 
   def do_process({:user, "whoami", _args}) do
-    Huggingface_hub.Hf_api.whoami()
+    IO.puts inspect HuggingfaceHub.whoami
   end
 end
