@@ -8,14 +8,12 @@ defmodule Huggingface_hub.Hf_api do
   require Logger
 
   @username_placeholder "hf_user"
+  @remote_filepath_regex ~r/^\w[\w\/\-]*(\.\w+)?$/
+  # ^^ No trailing slash, no backslash, no spaces, no relative parts ("." or "..")
+  #    Only word characters and an optional extension
+  
   @remove_filepath_regex ~r/^\w[\w\/\-]*(\.\w+)?$/
   @initial_state %{endpoint: Constants.hf_endpoint()}
-
-  def echo(arg1 \\ "", arg2 \\ "", args \\ "") do
-    IO.inspect arg1
-    IO.inspect arg2
-    IO.inspect args
-  end
 
   @doc """
     Returns the repo type and ID from a huggingface.co URL linking to a repository
@@ -109,6 +107,7 @@ defmodule Huggingface_hub.Hf_api do
   def whoami(token \\ "") do
     state = @initial_state
     {:ok, token} = if token === "", do: HfFolder.get_token(), else: {:ok, token}
+
     unless token !== "" do
       raise ArgumentError,
             "You need to pass a valid `token` or login by using `huggingface-cli login`"
@@ -341,11 +340,13 @@ defmodule Huggingface_hub.Hf_api do
   """
   def get_full_repo_name(model_id, organization \\ "", token \\ "") do
     if organization == "" do
-      username = if model_id =~ "/" do
-        Enum.at(String.split(model_id, "/"),0)
-      else
-        whoami(token)["name"]
-      end
+      username =
+        if model_id =~ "/" do
+          Enum.at(String.split(model_id, "/"), 0)
+        else
+          whoami(token)["name"]
+        end
+
       "#{username}/#{model_id}"
     else
       "#{organization}/#{model_id}"
@@ -499,7 +500,9 @@ defmodule Huggingface_hub.Hf_api do
         CAUTION(this is irreversible).
   """
   def delete_repo(name, token \\ nil, organization \\ "", repo_type \\ "") do
-    {json, path, token} = prepare_json_for_repos_cmd("delete", name, token, organization, repo_type)
+    {json, path, token} =
+      prepare_json_for_repos_cmd("delete", name, token, organization, repo_type)
+
     r =
       Requests.auth_delete(
         path,
@@ -522,6 +525,7 @@ defmodule Huggingface_hub.Hf_api do
         raise ArgumentError, "Invalid token passed!"
       end
     end
+
     token
   end
 
@@ -552,7 +556,7 @@ defmodule Huggingface_hub.Hf_api do
       do: raise(ArgumentError, "Invalid repo type: #{inspect(repo_type)}")
 
     json = %{name: name, organization: organization}
-    json = kwargs != "" && Map.merge(json, kwargs) || json
+    json = (kwargs != "" && Map.merge(json, kwargs)) || json
     {(repo_type != "" && Map.merge(json, %{type: repo_type})) || json, path, token}
   end
 
@@ -561,12 +565,17 @@ defmodule Huggingface_hub.Hf_api do
   """
   def update_repo_visibility(name, private, token \\ nil, organization \\ "", repo_type \\ "") do
     token = get_valid_token(token)
-    namespace = organization == "" && whoami(token)["name"] || organization
-    path_prefix = "#{@initial_state.endpoint}/api/" 
-                   <> if repo_type != "" and repo_type in Map.keys(Constants.repo_types_url_prefixes), do: 
-                        Constants.repo_types_url_prefixes[repo_type], else: ""
+    namespace = (organization == "" && whoami(token)["name"]) || organization
+
+    path_prefix =
+      "#{@initial_state.endpoint}/api/" <>
+        if repo_type != "" and repo_type in Map.keys(Constants.repo_types_url_prefixes()),
+          do: Constants.repo_types_url_prefixes()[repo_type],
+          else: ""
+
     path = "#{path_prefix}#{namespace}/#{name}/settings"
     json = %{private: private}
+
     r =
       Requests.auth_put(
         path,
@@ -575,8 +584,42 @@ defmodule Huggingface_hub.Hf_api do
         [:with_body],
         Jason.encode!(json)
       )
+
     Requests.raise_for_status(r)
   end
 
-  # TODO: Add update_repo_visibility, upload_file, delete_file
+  def upload_file(
+    path_or_fileobj, 
+    path_in_repo, 
+    repo_id, 
+    token \\ nil, 
+    repo_type \\ "", 
+    revision \\ "main", 
+    identical_ok \\ false) do
+    if repo_type not in Constants.repo_types(),
+      do: raise(ArgumentError, "Invalid repo type: #{inspect(repo_type)}")
+    token = get_valid_token(token)
+    unless is_binary(path_or_fileobj), do:
+      raise ArgumentError, "path_or_fileobj must be a path to a file or a binary"
+    if not (path_in_repo =~ @remote_filepath_regex), do:
+      raise ArgumentError, "Invalid path_in_repo '#{path_in_repo}'. Not matching: #{inspect @remote_filepath_regex}"
+    repo_type = if repo_type in Map.keys(Constants.repo_types_url_prefixes) do
+        Constants.repo_types_url_prefixes[repo_type] <> repo_id
+    else
+      repo_type
+    end
+    path="#{@initial_state.endpoint}/api/#{repo_id}/upload/#{revision}/#{path_in_repo}"
+    datastream = if String.printable?(path_or_fileobj) do
+      {:ok, file} = File.open(Path.expand(path_or_fileobj), [:read])
+      IO.binread(file, :all)
+    else
+      path_or_fileobj
+    end
+    r = Requests.auth_post(path, token, [], [:with_body], datastream)
+    d = Requests.raise_for_status(r)
+    Jason.decode!(d)["url"]
+
+  end
+
+  # TODO: Add upload_file, delete_file
 end

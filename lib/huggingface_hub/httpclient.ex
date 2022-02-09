@@ -52,7 +52,12 @@ defmodule Huggingface_hub.HTTPClient do
   @callback put(url :: String.t(), headers(), options :: [option], params :: [param]) ::
               {:ok, {status(), headers(), body()}} | {:error, term()}
 
-  @callback auth_delete(url :: String.t(), bearer_token :: String.t(), headers(), params :: [param]) ::
+  @callback auth_delete(
+              url :: String.t(),
+              bearer_token :: String.t(),
+              headers(),
+              params :: [param]
+            ) ::
               {:ok, {status(), headers(), body()}} | {:error, term()}
 
   @callback delete(url :: String.t(), headers(), params :: [param]) ::

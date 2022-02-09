@@ -34,10 +34,10 @@ defmodule HuggingfaceHub do
   for {api, [arities]} <- @public_hf_apis do
     for arity <- arities do
       args = Macro.generate_arguments(arity, __MODULE__)
+
       def unquote(api)(unquote_splicing(args)) do
         apply(Hf_api, unquote(api), unquote(args))
       end
     end
   end
-
 end

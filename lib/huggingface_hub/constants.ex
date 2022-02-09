@@ -15,11 +15,12 @@ defmodule Huggingface_hub.Constants do
 
   def repo_types, do: ["", @repo_type_model, @repo_type_dataset, @repo_type_space]
   def spaces_sdk_types, do: ["gradio", "streamlit", "static"]
+
   def repo_types_url_prefixes,
     do: %{
       unquote(@repo_type_dataset) => "datasets/",
-      unquote(@repo_type_space) =>  "spaces/"
-  }
+      unquote(@repo_type_space) => "spaces/"
+    }
 
   def repo_types_mapping,
     do: %{
@@ -27,5 +28,4 @@ defmodule Huggingface_hub.Constants do
       spaces: @repo_type_space,
       models: @repo_type_model
     }
-
 end
