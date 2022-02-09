@@ -13,11 +13,14 @@ defmodule Huggingface_hub.RepoObj do
   end
 
   def repr(state) do
-    items = Enum.join(
-      for {k,v} <- state do
-        "#{k}=#{v}"
-      end,
-    ", ")
+    items =
+      Enum.join(
+        for {k, v} <- state do
+          "#{k}=#{v}"
+        end,
+        ", "
+      )
+
     "#{__MODULE__}(#{items})"
   end
 end

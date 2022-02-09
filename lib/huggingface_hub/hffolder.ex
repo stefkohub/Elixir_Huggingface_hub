@@ -2,13 +2,14 @@ defmodule Huggingface_hub.HfFolder do
   require Logger
 
   @path_token Path.expand("~/.huggingface/token")
-  def path_token, do: @path_token 
+  def path_token, do: @path_token
 
   @doc """
         Save token, creating folder as needed.
   """
   def save_token(token, path_token \\ @path_token) do
     File.mkdir_p!(Path.dirname(path_token))
+
     File.open(path_token, [:read, :write], fn f ->
       IO.write(f, token)
     end)
@@ -22,7 +23,7 @@ defmodule Huggingface_hub.HfFolder do
       File.open(path_token, [:read], fn f ->
         IO.read(f, :all)
       end)
-    catch 
+    catch
       _ -> Logger.info("Cannot read the file #{path_token}")
     end
   end
@@ -37,5 +38,4 @@ defmodule Huggingface_hub.HfFolder do
       _ -> Logger.info("Cannot remove the file #{path_token}")
     end
   end
-
 end

@@ -3,7 +3,7 @@ defmodule Huggingface_hub.ModelTags do
 
   def get_tags(tag_dictionary) do
     {pid, state} = start_link(tag_dictionary)
-    IO.puts "Adesso state=#{inspect state}"
+    IO.puts("Adesso state=#{inspect(state)}")
     state
   end
 end
