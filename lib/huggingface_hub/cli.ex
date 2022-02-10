@@ -105,7 +105,7 @@ defmodule HuggingfaceHub.CLI do
     Huggingface_hub.Hf_api.set_access_token(token)
     Huggingface_hub.HfFolder.save_token(token)
     IO.puts("Login successful")
-    IO.puts("Your token has been saved to #{Huggingface_hub.HfFolder.path_token()}")
+    IO.puts("Your token has been saved to #{Huggingface_hub.HfFolder.path_token()} and into git credential store")
     Huggingface_hub.Shared.currently_setup_credential_helpers()
   end
 
@@ -127,6 +127,8 @@ defmodule HuggingfaceHub.CLI do
         t
       end
 
+    Huggingface_hub.HfFolder.delete_token()
+    IO.puts("Your token has been deleted from #{Huggingface_hub.HfFolder.path_token()} and from git credential store")
     HuggingfaceHub.logout(token)
   end
 

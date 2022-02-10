@@ -74,9 +74,7 @@ defmodule Huggingface_hub.Hf_api do
   def login(username, password) do
     # That's not true.
     # Logger.error("HfApi.login: This method is deprecated in favor of `set_access_token`.")
-    state = @initial_state
-
-    path = "#{state.endpoint}/api/login"
+    path = "#{@initial_state.endpoint}/api/login"
     params = Jason.encode!(%{username: username, password: password})
     r = Requests.post(path, [{"content-type", "application/json"}], [:with_body], params)
     d = Jason.decode!(Requests.raise_for_status(r))
@@ -87,10 +85,9 @@ defmodule Huggingface_hub.Hf_api do
   def logout(token) do
     # That's not true.
     # Logger.error("HfApi.login: This method is deprecated in favor of `unset_access_token`.")
-    state = @initial_state
     username = whoami(token)["name"]
     Shared.erase_from_credential_store(username)
-    path = "#{state.endpoint}/api/logout"
+    path = "#{@initial_state.endpoint}/api/logout"
     r = Requests.auth_post(path, token, [], [:with_body], [])
     Jason.decode!(Requests.raise_for_status(r))
   end
