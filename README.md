@@ -69,7 +69,7 @@ iex> HuggingfaceHub.delete_repo(name=name)
 ## Delete a dataset repository by adding the `repo_type` parameter:
 
 ```elixir
-iex> delete_repo(name=REPO_NAME, repo_type="dataset")
+iex> HuggingfaceHub.delete_repo(REPO_NAME, "dataset")
 ```
 
 ## Change repository visibility
@@ -77,8 +77,7 @@ iex> delete_repo(name=REPO_NAME, repo_type="dataset")
 A repository can be public or private. A private repository is only visible to you or members of the organization in which the repository is located. Change a repository to private as shown in the following:
 
 ```elixir
-iex> from huggingface_hub import update_repo_visibility
-iex> update_repo_visibility(name=REPO_NAME, private=True)
+iex> HuggingfaceHub.update_repo_visibility(REPO_NAME, true)
 ```
 
 ## Upload a file to a repository
