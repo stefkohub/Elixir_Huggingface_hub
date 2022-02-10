@@ -13,14 +13,14 @@ three user-related commands: login, logout and whoami.
 It is needed to put at least the username in command line. The password can be put into after the username or by using the stdin. Once logged in, the token is saved to a local file in order to allow the other commands to use it.
 
 #### Login getting password from command line
-```elixir
+```bash
 $ ./huggingface_hub --user login stefanof apassword
 Login successful
 Your token has been saved to /home/stefkohub/.huggingface/token and into git credential store
 ```
 
 #### Login getting password from stdin
-```elixir
+```bash
 $ ./huggingface_hub --user login stefanof
 password> [characters are hidden while typing]
 Login successful
@@ -29,14 +29,16 @@ Your token has been saved to /home/stefkohub/.huggingface/token
 
 ### Logging out
 It not needed any parameter. The logout will clean-up the local files used to store the token.
+```bash
 $ ./huggingface_hub --user logout 
 Your token has been deleted from /home/stefkohub/.huggingface/token and from git credential store
-###
-
+```
 ### Who am I?
 It not needed any parameter. The information are taken using the whoami API. At the moment the output is a text containing the Elixir map of whoami response.
+```bash
 $ ./huggingface_hub --user whoami
 %{"avatarUrl" => "/avatars/dceacda2d3d48170cbf5333434182f53.svg", "email" => "stefkohub@example.com", "emailVerified" => true, "fullname" => "StefkoHub", "name" => "stefkohub", "orgs" => [], "periodEnd" => nil, "plan" => "NO_PLAN", "type" => "user"}
+```
 
 ## Model listing
 
