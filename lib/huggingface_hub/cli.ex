@@ -46,7 +46,7 @@ defmodule HuggingfaceHub.CLI do
     send(pid, {:done, self(), ref})
     receive do: ({:done, ^pid, ^ref} -> :ok)
 
-    value
+    String.trim(value)
   end
 
   defp loop(prompt) do
