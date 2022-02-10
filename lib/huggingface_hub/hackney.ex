@@ -127,19 +127,18 @@ defmodule Huggingface_hub.Hackney do
 
           if code != 200 do
             respobj = Jason.decode!(resp)
-            # IO.puts("respobj=#{inspect(respobj)}")
 
             message =
-              cond do
-                400 <= code and code <= 500 ->
-                  "#{code} Client Error: #{respobj["error"]} for url: #{respobj["url"]}"
+              (cond do
+                 400 <= code and code <= 500 ->
+                   "#{code} Client Error: #{respobj["error"]}"
 
-                500 <= code and code <= 600 ->
-                  "#{code} Server Error: #{respobj["error"]} for url: #{respobj["url"]}"
+                 500 <= code and code <= 600 ->
+                   "#{code} Server Error: #{respobj["error"]}"
 
-                true ->
-                  "#{code} Generic Error: #{respobj["error"]} for url: #{respobj["url"]}"
-              end
+                 true ->
+                   "#{code} Generic Error: #{respobj["error"]}"
+               end <> respobj["url"] && " for url: #{respobj["url"]}") || ""
 
             # respobj = Map.merge(respobj, %{"error" => message})
             {:error, {code, headers, message}}

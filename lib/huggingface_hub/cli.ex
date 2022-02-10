@@ -30,27 +30,53 @@ defmodule HuggingfaceHub.CLI do
       opts[:user] ->
         {:user, opts[:user], args}
 
-      true -> raise "Cannot understand the command: #{inspect args}, #{inspect opts}"
-        # opt -> Keyword.merge(options, opt)
+      true ->
+        IO.puts("Cannot understand the command: #{inspect(args)}, #{inspect(opts)}")
+        :help
     end
+  end
 
-    # cond do
-    #  Keyword.get(opts, :help) -> :help
-    #  Keyword.get(opts, :model) -> Keyword.get(opts, :model)
-    #  Keyword.get(opts, :force_raw) -> :force_raw
-    #  true -> :help
-    # end
+  # From https://github.com/hexpm/hex/blob/8602339308e68477357807b838280c9d2be0edc1/lib/mix/tasks/hex.ex#L371
+
+  def password_clean(prompt) do
+    pid = spawn_link(fn -> loop(prompt) end)
+    ref = make_ref()
+    value = IO.gets(prompt <> " ")
+
+    send(pid, {:done, self(), ref})
+    receive do: ({:done, ^pid, ^ref} -> :ok)
+
+    value
+  end
+
+  defp loop(prompt) do
+    receive do
+      {:done, parent, ref} ->
+        send(parent, {:done, self(), ref})
+        IO.write(:standard_error, "\e[2K\r")
+    after
+      1 ->
+        IO.write(:standard_error, "\e[2K\r#{prompt} ")
+        loop(prompt)
+    end
   end
 
   def do_process(:help) do
     IO.puts("""
-    optional arguments:
-    -h, --help          show this help message and exit
-    -r, --force_raw     Force writing raw data instead of converting to actual type. In Elixir it boosts performances.
-    -m MODEL, --model MODEL
-                        [yolov3-tiny|yolov3|yolov3-spp|yolov4-tiny|yolov4|yolov4-csp|yolov4x-mish]-[{dimension}],
-                        where {dimension} could be either a single number (e.g. 288, 416, 608) or 2 numbers, WxH (e.g.
-                        416x256)
+      Usage: huggingface_hub [COMMAND] [OPTIONS] [PARAMS]
+      Command Line Interface for Huggingface Hub APIs
+
+      Commands:
+        --user        User-related interactions
+        --help        This help screen
+
+      Options:
+      User-related options
+        login         Login into Huggingface hub. Needs at least the username. 
+                      Password can be passed as parameter or using stdin
+        logout        Logout from Huggingface hub. Needs the username
+        whoami        Get useful information about the logged in user
+
     """)
 
     System.halt(0)
@@ -60,13 +86,14 @@ defmodule HuggingfaceHub.CLI do
     username = Enum.at(args, 0)
     password = Enum.at(args, 1)
 
-    unless username && password do
-      raise "Login requires username and password"
+    unless username do
+      raise "Login requires at least username"
     end
+
+    password = (password == nil && password_clean("password>")) || password
 
     token =
       try do
-        # Huggingface_hub.Hf_api.login(username, password)
         HuggingfaceHub.login(username, password)
       rescue
         err in HTTPError ->
@@ -90,7 +117,7 @@ defmodule HuggingfaceHub.CLI do
       if maybe_token do
         maybe_token
       else
-        unless t = Huggingface_hub.HfFolder.get_token(),
+        unless {:ok, t} = Huggingface_hub.HfFolder.get_token(),
           do:
             raise(
               ArgumentError,
@@ -104,6 +131,6 @@ defmodule HuggingfaceHub.CLI do
   end
 
   def do_process({:user, "whoami", _args}) do
-    IO.puts inspect HuggingfaceHub.whoami
+    IO.puts(inspect(HuggingfaceHub.whoami()))
   end
 end
