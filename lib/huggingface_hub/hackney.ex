@@ -20,7 +20,7 @@ end
 defmodule Huggingface_hub.Hackney do
   @moduledoc """
     Implementation of HTTP(s) methods to interact with endpoints
-    (partially from: https://github.com/lau/tzdata/http_client/hackney.ex)
+    (partially from: https://github.com/lau/tzdata/lib/tzdata/http_client/hackney.ex)
   """
 
   @available_functions [
