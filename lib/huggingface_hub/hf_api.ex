@@ -26,7 +26,7 @@ defmodule Huggingface_hub.Hf_api do
             - <namespace>/<repo_id>
             - <repo_id>
   """
-  defp repo_type_and_id_from_hf_id(hf_id) do
+  def repo_type_and_id_from_hf_id(hf_id) do
     is_hf_url = hf_id =~ "huggingface.co" and not (hf_id =~ "@")
     url_segments = String.split(hf_id, "/")
     is_hf_id = Enum.count(url_segments) <= 3
@@ -42,7 +42,7 @@ defmodule Huggingface_hub.Hf_api do
                  not (Enum.at(url_segments, -3) =~ "huggingface.co") do
               Enum.at(url_segments, -3)
             else
-              nil
+              ""
             end
 
           [repo_type, namespace, repo_id]
@@ -219,7 +219,7 @@ defmodule Huggingface_hub.Hf_api do
           repo_id,
           revision \\ "",
           token \\ "",
-          timeout \\ ""
+          _timeout \\ ""
         ) do
       state = @initial_state
       {:ok, token} = if token === nil, do: HfFolder.get_token(), else: {:ok, token}
@@ -360,7 +360,7 @@ defmodule Huggingface_hub.Hf_api do
         token \\ "",
         timeout \\ ""
       ) do
-    state = @initial_state
+    # state = @initial_state
 
     info =
       cond do
@@ -609,7 +609,7 @@ defmodule Huggingface_hub.Hf_api do
           "Invalid path_in_repo '#{path_in_repo}'. Not matching: #{inspect(@remote_filepath_regex)}"
         )
 
-    repo_type =
+    repo_id =
       if repo_type in Map.keys(Constants.repo_types_url_prefixes()) do
         Constants.repo_types_url_prefixes()[repo_type] <> repo_id
       else
