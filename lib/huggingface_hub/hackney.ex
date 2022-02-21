@@ -24,8 +24,8 @@ defmodule Huggingface_hub.Hackney do
   """
 
   @available_functions [
-    auth_get: 4,
-    get: 3,
+    auth_get: 5,
+    get: 4,
     auth_post: 5,
     post: 4,
     auth_put: 5,
