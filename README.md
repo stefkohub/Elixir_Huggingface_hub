@@ -130,6 +130,121 @@ iex> HuggingfaceHub.upload_file("/home/dummy-test/README.md", "README.md", "stef
 'https://huggingface.co/stefkohub/test-model/blob/main/README.md'
 ```
 
+## Repository 
+
+The Repository module allows you to push models or other repositories to the Hub. Repository is a wrapper over Git and Git-LFS methods, so make sure you have Git-LFS installed and set up before you begin. The Repository module should feel familiar if you are already familiar with common Git commands.
+
+
+### Clone a repository
+
+The `clone_from` parameter clones a repository from a Hugging Face model ID to a directory specified by the `local_dir` argument:
+
+```elixir
+iex> alias Huggingface_hub.Repository
+iex> {pid, repo} = Repository.repository([local_dir: "./w2v2", clone_from: "facebook/wav2vec2-large-960h-lv60"])
+{#PID<0.276.0>, "https://huggingface.co/facebook/wav2vec2-large-960h-lv60"}
+```
+
+The repository function is running a GenServer hence the pid is needed to manage the state in next calls. At the moment it is possible to manage one repository at time so a second call do Repository.repository will overwrite previous state. 
+
+`clone_from` can also clone a repository from a specified directory using a URL (if you are working offline, this parameter should not be used):
+
+```elixir
+iex> {pid, repo} = Repository.Repository([local_dir: "huggingface-hub", clone_from: "https://github.com/huggingface/huggingface_hub"])
+{#PID<0.276.0>, "https://github.com/huggingface/huggingface_hub"}
+```
+
+Easily combine the `clone_from` parameter with `create_repo` to create and clone a repository:
+
+```elixir
+iex> repo_url = HuggingfaceHub.create_repo("repo_name")
+iex> {pid, repo} = Repository([local_dir: "repo_local_path", clone_from: repo_url])
+{#PID<0.276.0>, "https://huggingface.co/<path>/<to>/repo_name"}
+
+### Using a local clone
+
+Instantiate a Repository object with a path to a local Git clone or repository:
+```elixir
+iex> {pid, repo} = Repository.repository(local_dir: "<path>/<to>/<folder>")
+```
+
+### Commit and push to a cloned repository
+
+If you want to commit or push to a cloned repository that belongs to you or your organizations:
+
+1. Log in to your Hugging Face account with the following command:
+
+```bash
+$ huggingface-cli login
+```
+
+1. Instantiate a Repository class:
+
+```elixir
+iex> {pid, repo} = Repository.repository([local_dir: "my-model", clone_from: "<user>/<model_id>"])
+```
+
+You can also attribute a Git username and email to a cloned repository by specifying the git_user and git_email parameters. When users commit to that repository, Git will be aware of the commit author.
+
+```elixir
+iex> {pid, repo} = Repository.repository([
+...>   local_dir: "my-dataset", 
+...>   clone_from: "<user>/<dataset_id>", 
+...>   use_auth_token: true, 
+...>   repo_type: "dataset",
+...>   git_user: "MyName",
+...>   git_email: "me@cool.mail"
+...> ])
+```
+
+### Branch
+
+Switch between branches with `git_checkout`. For example, if you want to switch from branch1 to branch2:
+
+```elixir
+iex> {pid, repo} = Repository.repository([local_dir: "huggingface-hub", clone_from: "<user>/<dataset_id>", revision: 'branch1'])
+iex> Repository.git_checkout(pid, "branch2")
+```
+
+### Pull
+
+Update a current local branch with `git_pull`:
+
+```elixir
+iex> Repository.git_pull(pid)
+```
+
+Set rebase to true if you want your local commits to occur after your branch is updated with the new commits from the remote:
+
+```elixir
+iex> Repository.git_pull(true)
+```
+
+## Commit functionality
+The combination between repository and commit functions allow to handle four of the most common Git commands: pull, add, commit, and push. git-lfs automatically tracks any file larger than 10MB. In the following example, the two functionalities:
+
+1. Pull from the text-files repository.
+1. Add a change made to file.txt.
+1. Commit the change.
+1. Push the change to the text-files repository.
+
+```elixir
+iex> {pid, repo} = Repository.repository(local_dir="text-files", clone_from="<user>/text-files")
+iex> Repository.commit(pid, [commit_message: "My first file :)"], fn ->
+...>   File.open("file.txt", [:read, :write], fn file -> 
+...>     IO.write(file, "some data here...") 
+...>     end)
+```
+
+## `push_to_hub`
+
+The Repository module also has a `push_to_hub` utility to add files, make a commit, and push them to a repository. Unlike the commit functionality, `push_to_hub` requires you to pull from a repository first, save the files, and then call `push_to_hub`.
+
+```elixir
+iex> Repository.git_pull(pid)
+iex> Repository.push_to_hub(pid, commit_message: "Commit my-awesome-file to the Hub")
+```
+
 ## Installation
 
 If [available in Hex](https://hex.pm/docs/publish), the package can be installed

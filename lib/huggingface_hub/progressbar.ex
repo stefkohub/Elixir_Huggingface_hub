@@ -1,4 +1,3 @@
-
 defmodule Huggingface_hub.RunCommand do
   @moduledoc """
 
@@ -89,10 +88,18 @@ defmodule Huggingface_hub.RunCommand do
     Process.flag(:trap_exit, true)
 
     bin_env = for {key, val} <- env, do: {to_charlist(key), to_charlist(val)}
+
     port =
       Port.open(
         {:spawn_executable, command},
-        [:binary, :exit_status, :stderr_to_stdout, args: args, cd: Path.absname(cwd), env: bin_env]
+        [
+          :binary,
+          :exit_status,
+          :stderr_to_stdout,
+          args: args,
+          cd: Path.absname(cwd),
+          env: bin_env
+        ]
       )
 
     Port.monitor(port)
@@ -190,4 +197,3 @@ defmodule Huggingface_hub.RunCommand do
     GenServer.call(pid, :latest_output)
   end
 end
-

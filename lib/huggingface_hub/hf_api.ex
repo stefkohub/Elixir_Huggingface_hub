@@ -12,7 +12,6 @@ defmodule Huggingface_hub.Hf_api do
   # ^^ No trailing slash, no backslash, no spaces, no relative parts ("." or "..")
   #    Only word characters and an optional extension
 
-  @remove_filepath_regex ~r/^\w[\w\/\-]*(\.\w+)?$/
   @initial_state %{endpoint: Constants.hf_endpoint()}
 
   @doc """
@@ -42,7 +41,7 @@ defmodule Huggingface_hub.Hf_api do
                  not (Enum.at(url_segments, -3) =~ "huggingface.co") do
               Enum.at(url_segments, -3)
             else
-              "" 
+              ""
             end
 
           [repo_type, namespace, repo_id]
@@ -63,7 +62,7 @@ defmodule Huggingface_hub.Hf_api do
       (repo_type in Constants.repo_types() && repo_type) ||
         Constants.repo_types_mapping()[String.to_atom(repo_type)]
 
-    {((repo_type === nil && "") || repo_type), namespace, repo_id}
+    {(repo_type === nil && "") || repo_type, namespace, repo_id}
   end
 
   @doc """
@@ -653,11 +652,11 @@ defmodule Huggingface_hub.Hf_api do
           "Invalid path_in_repo '#{path_in_repo}'. Not matching: #{inspect(@remote_filepath_regex)}"
         )
 
-    repo_type =
+    repo_id =
       if repo_type in Map.keys(Constants.repo_types_url_prefixes()) do
         Constants.repo_types_url_prefixes()[repo_type] <> repo_id
       else
-        repo_type
+        repo_id
       end
 
     path = "#{@initial_state.endpoint}/api/#{repo_id}/delete/#{revision}/#{path_in_repo}"

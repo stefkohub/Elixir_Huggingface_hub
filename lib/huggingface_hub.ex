@@ -4,9 +4,10 @@ defmodule HuggingfaceHub do
   """
 
   alias Huggingface_hub.Hf_api
-  alias Huggingface_hub.Constants
-  alias Huggingface_hub.Shared
-  alias Huggingface_hub.HfFolder
+  # alias Huggingface_hub.Constants
+  # alias Huggingface_hub.Shared
+  # alias Huggingface_hub.HfFolder
+  # alias Huggingface_hub.Repository
 
   require Logger
 

@@ -65,4 +65,3 @@ defmodule Huggingface_hub.TailProgress do
     send(pid, :end_loop)
   end
 end
-

@@ -1,4 +1,3 @@
-
 defmodule Huggingface_hub.Repository do
   use Agent, restart: :transient
   require Logger
@@ -24,13 +23,18 @@ defmodule Huggingface_hub.Repository do
 
     initial_state = %{initial_state | huggingface_token: huggingface_token}
     res = Agent.start_link(fn -> initial_state end, name: __MODULE__)
+
     case res do
-      {:ok, pid} -> pid
+      {:ok, pid} ->
+        pid
+
       {:error, {:already_started, pid}} ->
         Logger.warning("Repository already initialised. Overwriting previous one.")
         update_state(pid, initial_state)
         pid
-      _ -> raise "Unexpected error in repository process initialisation"
+
+      _ ->
+        raise "Unexpected error in repository process initialisation"
     end
   end
 
@@ -58,6 +62,7 @@ defmodule Huggingface_hub.Repository do
       skip_lfs_files: Keyword.get(args, :skip_lfs_files, false),
       pid: nil
     }
+
     pid = start_link(state)
     state = update_state(pid, %{pid: pid})
 
@@ -71,8 +76,11 @@ defmodule Huggingface_hub.Repository do
         if is_git_repo(state.local_dir) === true,
           do: Logger.debug("#{state.local_dir} is a valid git repo"),
           else:
-            raise("If not specifying `clone_from`, you need to pass Repository a valid git clone. local_dir=#{state.local_dir}")
-          Run.git(state.local_dir, "remote get-url origin").stdout
+            raise(
+              "If not specifying `clone_from`, you need to pass Repository a valid git clone. local_dir=#{state.local_dir}"
+            )
+
+        Run.git(state.local_dir, "remote get-url origin").stdout
       end
 
     if state.huggingface_token != "" do
@@ -87,7 +95,8 @@ defmodule Huggingface_hub.Repository do
       git_credential_helper_store(state.local_dir)
       if state.revision != "", do: git_checkout(state, state.revision, true)
     end
-    {pid, repo}
+
+    {pid, String.trim(repo)}
   end
 
   def is_git_repo(folder) do
@@ -161,8 +170,7 @@ defmodule Huggingface_hub.Repository do
     if p.stdout != [] && p.exit_status === 0 do
       true
     else
-      if p.stdout =~ "HEAD", do:
-        raise "No branch checked out."
+      if p.stdout =~ "HEAD", do: raise("No branch checked out.")
       false
     end
   end
@@ -191,7 +199,7 @@ defmodule Huggingface_hub.Repository do
   end
 
   def clone_from(state_or_pid, repo_url, use_auth_token \\ "") do
-    state = is_pid(state_or_pid) && get_state(state_or_pid) || state_or_pid
+    state = (is_pid(state_or_pid) && get_state(state_or_pid)) || state_or_pid
     token = if use_auth_token != "", do: use_auth_token, else: state.huggingface_token
 
     if token === "" and state.private == true,
@@ -205,7 +213,9 @@ defmodule Huggingface_hub.Repository do
       if repo_url =~ "huggingface.co" or
            (not (repo_url =~ "http") and Enum.count(String.split(repo_url, "/")) <= 2) do
         {repo_type, namespace, repo_id} = Hf_api.repo_type_and_id_from_hf_id(repo_url)
-        state = update_state(state.pid, %{repo_type: (repo_type != "" && repo_type) || state.repo_type})
+
+        state =
+          update_state(state.pid, %{repo_type: (repo_type != "" && repo_type) || state.repo_type})
 
         repo_url =
           "#{Constants.hf_endpoint()}/" <>
@@ -243,6 +253,7 @@ defmodule Huggingface_hub.Repository do
           else
             (namespace != "" && "#{repo_url}#{namespace}/") || "#{repo_url}#{repo_id}"
           end
+
         repo_url
       else
         repo_url
@@ -326,60 +337,66 @@ defmodule Huggingface_hub.Repository do
       Returns the current checked out branch.
   """
   def current_branch(local_dir) do
-    Run.git(local_dir, "rev-parse --abbrev-ref HEAD").stdout
+    Run.git(local_dir, "rev-parse --abbrev-ref HEAD").stdout |> String.trim()
   end
 
   def git_checkout(state_or_pid, revision \\ "", create_branch_ok \\ false) do
-    state = is_pid(state_or_pid) && get_state(state_or_pid) || state_or_pid
-    try do
-      result = Run.git(state.local_dir, "checkout #{revision}")
+    state = (is_pid(state_or_pid) && get_state(state_or_pid)) || state_or_pid
+    result = Run.git(state.local_dir, "checkout #{revision}")
+
+    if result.exit_status === 0 do
       Logger.warning("Checked out #{revision} from #{current_branch(state.local_dir)}.")
       Logger.warning(result.stdout)
-    rescue
-      err ->
-        if create_branch_ok !== true, do: raise("Error in git checkout: #{inspect(err)}")
+    else
+      if create_branch_ok !== true, do: raise("Error in git checkout.")
 
-        try do
-          result = Run.git(state.local_dir, "checkout -b #{revision}")
+      try do
+        result = Run.git(state.local_dir, "checkout -b #{revision}")
 
-          Logger.warning(
-            "Revision `#{revision}` does not exist. Created and checked out branch `#{revision}`."
-          )
+        Logger.warning(
+          "Revision `#{revision}` does not exist. Created and checked out branch `#{revision}`."
+        )
 
-          Logger.warning(result.stdout)
-        catch
-          err -> raise "Error in git checkout branch: #{inspect(err)}"
-        end
+        Logger.warning(result.stdout)
+      catch
+        err -> raise "Error in git checkout branch: #{inspect(err)}"
+      end
     end
   end
 
   def git_pull(state_or_pid, rebase \\ false, lfs \\ false) do
-    state = is_pid(state_or_pid) && get_state(state_or_pid) || state_or_pid
-    command = ((lfs === false && "pull") || "lfs pull") <> ((rebase === true && " --rebase") || "")
+    state = (is_pid(state_or_pid) && get_state(state_or_pid)) || state_or_pid
+
+    command =
+      ((lfs === false && "pull") || "lfs pull") <> ((rebase === true && " --rebase") || "")
+
     Run.git_progressbar(state.local_dir, command)
   end
 
   def list_deleted_files(state_or_pid) do
-    state = is_pid(state_or_pid) && get_state(state_or_pid) || state_or_pid
+    state = (is_pid(state_or_pid) && get_state(state_or_pid)) || state_or_pid
     git_status = Run.git(state.local_dir, "status -s")
+
     if git_status.stdout == "" do
       []
     else
       Enum.flat_map(String.split(git_status.stdout, "\n"), fn status ->
         split_status = String.split(status)
-        if (status != "") and (Enum.at(split_status,0) =~ "D") do
-          [String.trim(Enum.at(split_status,-1))]
+
+        if status != "" and Enum.at(split_status, 0) =~ "D" do
+          [String.trim(Enum.at(split_status, -1))]
         else
           []
         end
       end)
     end
-  end 
+  end
 
   def lfs_track_func(state_or_pid, action, patterns, filename \\ false) do
-    state = is_pid(state_or_pid) && get_state(state_or_pid) || state_or_pid
+    state = (is_pid(state_or_pid) && get_state(state_or_pid)) || state_or_pid
     patterns = (is_list(patterns) && patterns) || [patterns]
     maybe_filename = (filename && "--filename") || ""
+
     for pattern <- patterns do
       Run.git(state.local_dir, "lfs #{action} #{maybe_filename} #{pattern}")
     end
@@ -394,44 +411,55 @@ defmodule Huggingface_hub.Repository do
   end
 
   def auto_track_large_files(state_or_pid, pattern) do
-    state = is_pid(state_or_pid) && get_state(state_or_pid) || state_or_pid
+    state = (is_pid(state_or_pid) && get_state(state_or_pid)) || state_or_pid
     deleted_files = list_deleted_files(state)
-    files_to_be_tracked_with_lfs = 
-      for filename <- (files_to_be_staged(pattern, state.local_dir) -- deleted_files) do
-        path_to_file = Path.join(File.cwd!, [state.local_dir, filename])
+
+    files_to_be_tracked_with_lfs =
+      for filename <- files_to_be_staged(pattern, state.local_dir) -- deleted_files do
+        path_to_file = Path.join(File.cwd!(), [state.local_dir, filename])
         size_in_mb = File.stat!(path_to_file).size / (1024 * 1024)
-        if size_in_mb >= 10 and not is_tracked_with_lfs(path_to_file) and not is_git_ignored(path_to_file) do
+
+        if size_in_mb >= 10 and not is_tracked_with_lfs(path_to_file) and
+             not is_git_ignored(path_to_file) do
           lfs_track(state, filename)
           filename
         end
-      end 
+      end
       |> Enum.filter(fn x -> x != nil end)
+
     # Cleanup the .gitattributes if files were deleted
     lfs_untrack(state, deleted_files)
     files_to_be_tracked_with_lfs
   end
 
   def git_add(state_or_pid, pattern \\ ".", auto_lfs_track \\ false) do
-    state = is_pid(state_or_pid) && get_state(state_or_pid) || state_or_pid
+    state = (is_pid(state_or_pid) && get_state(state_or_pid)) || state_or_pid
+
     if auto_lfs_track === true do
       tracked_f = auto_track_large_files(state, pattern)
-      if tracked_f === true, do:
-        Logger.warning("Adding files tracked by Git LFS: #{tracked_f}. This may take a bit of time if the files are large.")
+
+      if tracked_f === true,
+        do:
+          Logger.warning(
+            "Adding files tracked by Git LFS: #{tracked_f}. This may take a bit of time if the files are large."
+          )
+
       tracked_f
     end
+
     result = Run.git(state.local_dir, "add -v #{pattern}")
     Logger.info("Adding to index:\n#{result.stdout}\n")
   end
 
   def git_commit(state_or_pid, commit_message \\ "commit files to HF hub") do
-    state = is_pid(state_or_pid) && get_state(state_or_pid) || state_or_pid
+    state = (is_pid(state_or_pid) && get_state(state_or_pid)) || state_or_pid
     result = Run.git(state.local_dir, "commit -m #{commit_message} -v")
     Logger.info("Committed:\n#{result.stdout}\n")
     result
   end
 
   def lfs_prune(state_or_pid, recent \\ false) do
-    state = is_pid(state_or_pid) && get_state(state_or_pid) || state_or_pid
+    state = (is_pid(state_or_pid) && get_state(state_or_pid)) || state_or_pid
     command = "lfs prune" <> ((recent && " --recent") || "")
     result = Run.git_progressbar(state.local_dir, command)
     Logger.info(result.stdout)
@@ -439,27 +467,28 @@ defmodule Huggingface_hub.Repository do
   end
 
   def git_head_hash(state_or_pid) do
-    state = is_pid(state_or_pid) && get_state(state_or_pid) || state_or_pid
-    Run.git(state.local_dir, "rev-parse HEAD").stdout |> String.trim
+    state = (is_pid(state_or_pid) && get_state(state_or_pid)) || state_or_pid
+    Run.git(state.local_dir, "rev-parse HEAD").stdout |> String.trim()
   end
 
   def git_remote_url(state_or_pid) do
-    state = is_pid(state_or_pid) && get_state(state_or_pid) || state_or_pid
+    state = (is_pid(state_or_pid) && get_state(state_or_pid)) || state_or_pid
     result = Run.git(state.local_dir, "config --get remote.origin.url")
+
     result.stdout
     |> String.replace(~r/https:\/\/.*@/, "https://")
-    |> String.trim
+    |> String.trim()
   end
 
   def git_head_commit_url(state_or_pid) do
-    state = is_pid(state_or_pid) && get_state(state_or_pid) || state_or_pid
+    state = (is_pid(state_or_pid) && get_state(state_or_pid)) || state_or_pid
     sha = git_head_hash(state)
     url = git_remote_url(state)
     URI.merge(url, "/commit/#{sha}") |> to_string()
   end
 
   def git_push(state_or_pid, upstream \\ "", blocking \\ true, auto_lfs_prune \\ false) do
-    state = is_pid(state_or_pid) && get_state(state_or_pid) || state_or_pid
+    state = (is_pid(state_or_pid) && get_state(state_or_pid)) || state_or_pid
     command = "push" <> ((upstream != "" && " --set-upstream #{upstream}") || "")
     number_of_commits = commits_to_push(state.local_dir, upstream)
     Logger.debug("number_of_commits=#{number_of_commits}")
@@ -468,9 +497,11 @@ defmodule Huggingface_hub.Repository do
       Logger.warning("Several commits (#{number_of_commits}) will be pushed upstream.")
       blocking && Logger.warning("The progress bars may be unreliable.")
     end
+
     if blocking do
       Run.git_progressbar(state.local_dir, command)
     end
+
     # TODO: Add non-blocking behavior
 
     auto_lfs_prune && lfs_prune(state)
@@ -485,46 +516,55 @@ defmodule Huggingface_hub.Repository do
     blocking = Keyword.get(args, :blocking, "")
     auto_lfs_prune = Keyword.get(args, :auto_lfs_prune, false)
 
-    state = is_pid(state_or_pid) && get_state(state_or_pid) || state_or_pid
+    state = (is_pid(state_or_pid) && get_state(state_or_pid)) || state_or_pid
     files_to_stage = files_to_be_staged(".", state.local_dir)
+
     if Enum.count(files_to_stage) > 5 do
-      files_to_stage = files_to_stage |>Enum.take(5)|>Enum.join(", ")|>then(fn x -> "[#{x}, ...]" end)
-      Logger.error(
-        """
-        There exists some updated files in the local repository that are not committed: #{files_to_stage}. 
-        This may lead to errors if checking out a branch. 
-        These files and their modifications will be added to the current commit.
-        """)
+      files_to_stage =
+        files_to_stage |> Enum.take(5) |> Enum.join(", ") |> then(fn x -> "[#{x}, ...]" end)
+
+      Logger.error("""
+      There exists some updated files in the local repository that are not committed: #{files_to_stage}. 
+      This may lead to errors if checking out a branch. 
+      These files and their modifications will be added to the current commit.
+      """)
     end
+
     if branch != "", do: git_checkout(state, branch, true)
+
     if is_tracked_upstream(state.local_dir) do
       Logger.warning("Pulling changes...")
       git_pull(state, true)
     else
-      Logger.warning("The current branch has no upstream branch. Will push to 'origin #{current_branch(state.local_dir)}'")
+      Logger.warning(
+        "The current branch has no upstream branch. Will push to 'origin #{current_branch(state.local_dir)}'"
+      )
     end
-    cwd = File.cwd!
-    # Non mi trovo: File.cd!(Path.join(cwd, state.local_dir))
+
+    cwd = File.cwd!()
+    # File.cd!(Path.join(cwd, state.local_dir))
     File.cd!(state.local_dir)
     func.()
     git_add(state, ".", track_large_files)
     res = git_commit(state, commit_message)
-    unless res.exit_status == 0 or res.stdout =~ "nothing to commit", do:
-      raise "Error in commit: #{res.stdout}"
+
+    unless res.exit_status == 0 or res.stdout =~ "nothing to commit",
+      do: raise("Error in commit: #{res.stdout}")
+
     res = git_push(state, "origin #{current_branch(state.local_dir)}", blocking, auto_lfs_prune)
-    #if res.exit_status != 0 do
+    # if res.exit_status != 0 do
     #  if res.stdout =~ "could not read Username" do
     #    raise "Couldn't authenticate user for push. Did you set `use_auth_token` to `True`?"
     #  else 
     #    raise "Error in push: #{res.stdout}"
     #  end
-    #end
+    # end
     File.cd!(cwd)
   end
 
   def is_repo_clean(state_or_pid) do
-    state = is_pid(state_or_pid) && get_state(state_or_pid) || state_or_pid
-    git_status = Run.git(state.local_dir, "status --porcelain").stdout |> String.trim
+    state = (is_pid(state_or_pid) && get_state(state_or_pid)) || state_or_pid
+    git_status = Run.git(state.local_dir, "status --porcelain").stdout |> String.trim()
     String.length(git_status) === 0
   end
 
@@ -534,7 +574,7 @@ defmodule Huggingface_hub.Repository do
     clean_ok = Keyword.get(args, :clean_ok, true)
     auto_lfs_prune = Keyword.get(args, :auto_lfs_prune, false)
 
-    state = is_pid(state_or_pid) && get_state(state_or_pid) || state_or_pid
+    state = (is_pid(state_or_pid) && get_state(state_or_pid)) || state_or_pid
 
     if clean_ok and is_repo_clean(state) do
       Logger.info("Repo currently clean. Nothing to push.")
@@ -543,6 +583,5 @@ defmodule Huggingface_hub.Repository do
       git_commit(state, commit_message)
       git_push(state, "origin #{state.current_branch}", blocking, auto_lfs_prune)
     end
-
   end
 end
