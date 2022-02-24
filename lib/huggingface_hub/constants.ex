@@ -28,4 +28,6 @@ defmodule Huggingface_hub.Constants do
       spaces: @repo_type_space,
       models: @repo_type_model
     }
+
+  def lfs_multipart_upload_command, do: "lfs-multipart-upload"
 end

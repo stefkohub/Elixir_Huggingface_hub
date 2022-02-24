@@ -140,7 +140,7 @@ defmodule Huggingface_hub.Hackney do
                   "#{code} Generic Error: #{respobj["error"]}"
               end
 
-            message = (respobj["url"] && " for url: #{respobj["url"]}") || message
+            message = (respobj["url"] != nil && "#{message} for url: #{respobj["url"]}") || message
 
             # respobj = Map.merge(respobj, %{"error" => message})
             {:error, {code, headers, message}}

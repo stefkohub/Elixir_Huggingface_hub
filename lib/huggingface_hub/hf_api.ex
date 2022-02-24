@@ -42,7 +42,7 @@ defmodule Huggingface_hub.Hf_api do
                  not (Enum.at(url_segments, -3) =~ "huggingface.co") do
               Enum.at(url_segments, -3)
             else
-              ""
+              "" 
             end
 
           [repo_type, namespace, repo_id]
@@ -51,7 +51,7 @@ defmodule Huggingface_hub.Hf_api do
           case Enum.count(url_segments) do
             3 -> Enum.take(url_segments, -3)
             2 -> [""] ++ Enum.take(url_segments, -2)
-            _ -> ["", ""] ++ Enum.at(url_segments, 0)
+            _ -> ["", ""] ++ [Enum.at(url_segments, 0)]
           end
 
         true ->
@@ -63,7 +63,7 @@ defmodule Huggingface_hub.Hf_api do
       (repo_type in Constants.repo_types() && repo_type) ||
         Constants.repo_types_mapping()[String.to_atom(repo_type)]
 
-    {repo_type, namespace, repo_id}
+    {((repo_type === nil && "") || repo_type), namespace, repo_id}
   end
 
   @doc """
@@ -471,7 +471,7 @@ defmodule Huggingface_hub.Hf_api do
         Requests.raise_for_status(r)
       rescue
         err ->
-          if not (exist_ok != "" and err.status_code == 409) do
+          if not (exist_ok === true and err.status_code === 409) do
             try do
               additional_info = Jason.decode!(r)["error"]
 
@@ -484,7 +484,8 @@ defmodule Huggingface_hub.Hf_api do
                 raise HTTPError, err.message
             end
           else
-            raise HTTPError, err.message
+            {:ok, {409, _, resp}} = r
+            resp
           end
       end
 

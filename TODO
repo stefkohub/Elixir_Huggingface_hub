@@ -1,0 +1,5 @@
+- cleanup code (remove unused runCommand modules)
+- decide: state or pid?
+- add try/except to Run commands
+- add @doc to the functions
+- add non-blocking push feature
