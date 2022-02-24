@@ -178,7 +178,7 @@ If you want to commit or push to a cloned repository that belongs to you or your
 $ huggingface-cli login
 ```
 
-1. Instantiate a Repository class:
+2. Instantiate a Repository class:
 
 ```elixir
 iex> {pid, repo} = Repository.repository([local_dir: "my-model", clone_from: "<user>/<model_id>"])
