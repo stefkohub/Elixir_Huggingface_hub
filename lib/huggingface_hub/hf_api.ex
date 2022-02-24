@@ -192,8 +192,6 @@ defmodule Huggingface_hub.Hf_api do
           end
         )
 
-      IO.puts("PARAMS=#{inspect(querystring)}")
-
       querystring =
         ((kw.full == true or kw.filter != "") && Enum.concat(querystring, full: true)) ||
           querystring
