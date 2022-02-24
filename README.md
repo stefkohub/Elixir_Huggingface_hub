@@ -247,13 +247,13 @@ iex> Repository.push_to_hub(pid, commit_message: "Commit my-awesome-file to the 
 
 ## Installation
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
+The package can be installed
 by adding `huggingface_hub` to your list of dependencies in `mix.exs`:
 
 ```elixir
 def deps do
   [
-    {:huggingface_hub, "~> 0.1.0"}
+    {:huggingface_hub, git: "https://github.com/stefkohub/Elixir_Huggingface_hub.git"}
   ]
 end
 ```
