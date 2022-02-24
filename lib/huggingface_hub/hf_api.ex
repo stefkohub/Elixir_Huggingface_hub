@@ -244,6 +244,15 @@ defmodule Huggingface_hub.Hf_api do
     end
   end
 
+  def list_axon_models(args \\ []) do
+    args =
+      Keyword.update(args, :filter, "Axon", fn curr_val ->
+        List.flatten([curr_val] ++ ["Axon"])
+      end)
+
+    list_models(args)
+  end
+
   # TODO: See if use it
   def unpack_model_filter(model_filter) do
     model_str = (Map.has_key?(model_filter, "author") && model_filter.author <> "/") || ""
@@ -302,7 +311,6 @@ defmodule Huggingface_hub.Hf_api do
            Enum.concat(filter_tuple, model_filter["language"])) || filter_tuple
     }
 
-    IO.puts("Qui query_dict=#{inspect(query_dict)}")
     query_dict
   end
 

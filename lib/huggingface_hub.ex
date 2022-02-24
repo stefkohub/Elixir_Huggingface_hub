@@ -21,6 +21,7 @@ defmodule HuggingfaceHub do
     get_model_tags: [0..0, Hf_api],
     get_dataset_tags: [0..0, Hf_api],
     list_models: [0..1, Hf_api],
+    list_axon_models: [0..1, Hf_api],
     list_datasets: [0..1, Hf_api],
     model_info: [1..4, Hf_api],
     dataset_info: [1..4, Hf_api],
