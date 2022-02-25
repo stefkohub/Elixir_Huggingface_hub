@@ -59,6 +59,17 @@ iex> HuggingfaceHub.list_models(filter: "dataset:common_voice")
 iex> HuggingfaceHub.list_models(filter: "spacy")
 ```
 
+## Axon Model listing
+This function is allowing the Axon developers to easily search for Axon-dedicated models (thanks to Scott Mueller). It is using `list_models` with the `search: "Axon"` automatically added to the parameters.
+
+```elixir
+# List all Axon models.
+iex> HuggingfaceHub.list_axon_models()
+
+# List only text classification Axon models.
+iex> HuggingfaceHub.list_axon_models(filter: "text-classification")
+```
+
 ## Explore available public datasets with `list_datasets`:
 
 ```elixir
